@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-bg text-text antialiased;
+  background-image: radial-gradient(circle at top, rgba(61, 217, 179, 0.14), transparent 35%),
+    linear-gradient(180deg, #07111f 0%, #091b2d 100%);
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.glow-card {
+  @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm shadow-glow;
+}
+
+button,
+input {
+  @apply outline-none;
+}
