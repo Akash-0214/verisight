@@ -1,38 +1,16 @@
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
+import { performPublicLookup } from '../services/public-data-service.js';
 
 const router = Router();
 
 const searchSchema = z.object({
-  query: z.string().min(2).max(200),
+  query: z.string().trim().min(2).max(200),
   type: z.enum(['domain', 'email', 'username', 'company']).default('domain')
 });
 
-const mockResults = {
-  domain: {
-    summary: 'Domain is publicly registered and has valid DNS records.',
-    risk: 'Low',
-    evidence: ['WHOIS available', 'DNS resolves successfully', 'Public web presence detected']
-  },
-  email: {
-    summary: 'Email appears in public breach data and public directory index.',
-    risk: 'Moderate',
-    evidence: ['Breach references found', 'Public profile match', 'Company directory entry present']
-  },
-  username: {
-    summary: 'Username is visible across public social and software profiles.',
-    risk: 'Low',
-    evidence: ['GitHub public profile', 'Linked social presence', 'Public username listing found']
-  },
-  company: {
-    summary: 'Company profile is publicly discoverable and categorized.',
-    risk: 'Low',
-    evidence: ['Public website found', 'Business metadata available', 'Company directory entry present']
-  }
-};
-
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req: Request, res: Response) => {
   const parsed = searchSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -40,16 +18,23 @@ router.post('/', requireAuth, (req, res) => {
   }
 
   const { type, query } = parsed.data;
-  const result = mockResults[type];
 
-  return res.json({
-    type,
-    query,
-    summary: result.summary,
-    risk: result.risk,
-    evidence: result.evidence,
-    timestamp: new Date().toISOString()
-  });
+  try {
+    const result = await performPublicLookup(type, query);
+
+    return res.json({
+      type,
+      query,
+      summary: result.summary,
+      risk: result.risk,
+      evidence: result.evidence,
+      timestamp: new Date().toISOString(),
+      legalNotice: 'Results are based on lawful public-source intelligence only.'
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Unable to process the lookup.' });
+  }
 });
 
 export default router;
